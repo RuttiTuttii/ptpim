@@ -1,0 +1,123 @@
+name: Bug Report
+description: Сообщить об ошибке в работе приложения GameStore
+title: "[Ошибка]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Спасибо за ваш отчет! Пожалуйста, заполните все разделы ниже максимально подробно. Это поможет нам быстрее исправить проблему.
+        
+        **Примечание:** Перед созданием отчета убедитесь, что ошибка воспроизводится в последней версии приложения.
+
+  - type: input
+    id: environment
+    attributes:
+      label: Среда выполнения
+      description: "Операционная система, версия .NET, оборудование"
+      placeholder: "Например: Windows 11, .NET 6.0, 8GB RAM"
+    validations:
+      required: true
+
+  - type: textarea
+    id: summary
+    attributes:
+      label: Краткое описание
+      description: "Кратко опишите суть проблемы"
+      placeholder: "Например: Ошибка при добавлении игры в корзину"
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Шаги воспроизведения
+      description: "Четко опишите последовательность действий, приводящую к ошибке"
+      placeholder: |
+        1. Открыть приложение GameStore
+        2. Перейти в каталог игр
+        3. Выбрать игру 'The Witcher 3'
+        4. Нажать кнопку 'Добавить в корзину'
+        5. Наблюдать ошибку
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Ожидаемый результат
+      description: "Что должно было произойти в соответствии с логикой приложения?"
+      placeholder: "Игра должна быть добавлена в корзину, отобразиться сообщение об успешном добавлении"
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Фактический результат
+      description: "Что произошло на самом деле?"
+      placeholder: "Приложение выдает исключение NullReferenceException"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Серьезность ошибки
+      description: "Насколько критична эта ошибка?"
+      options:
+        - "Критическая (Critical) - блокирующая работа приложения"
+        - "Высокая (High) - основной функционал не работает"
+        - "Средняя (Medium) - частичная неработоспособность"
+        - "Низкая (Low) - косметическая проблема"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Приоритет исправления
+      description: "Срочность исправления этой ошибки"
+      options:
+        - "Высокий (High) - требуется немедленное исправление"
+        - "Средний (Medium) - исправить в ближайшем релизе"
+        - "Низкий (Low) - исправить при наличии времени"
+    validations:
+      required: true
+
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Скриншоты / Логи / Дополнительные материалы
+      description: "Если возможно, приложите скриншоты, логи исключений или другие материалы"
+      placeholder: |
+        Можно перетащить файлы сюда или вставить ссылки.
+        Пример лога ошибки:
+        System.NullReferenceException: Object reference not set to an instance of an object.
+           at GameStore.ViewModels.MainViewModel.AddToCart(Game game) in MainViewModel.cs:line 45
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Дополнительная информация
+      description: "Любая другая информация, которая может помочь в воспроизведении и исправлении ошибки"
+      placeholder: "Ошибка возникает только при первом запуске приложения..."
+
+  - type: checkboxes
+    id: terms
+    attributes:
+      label: Проверки перед отправкой
+      options:
+        - label: "Я проверил, что эта ошибка не была ранее зарегистрирована"
+          required: true
+        - label: "Я подтверждаю, что предоставленная информация точна и полна"
+          required: true
+
+  - type: markdown
+    attributes:
+      value: |
+        **Шаблон основан на анализе кода приложения GameStore, который включает:**
+        - Модели данных (Game, Key, CartItem)
+        - ViewModel (MainViewModel, ViewModelBase)
+        - Контекст базы данных (AppDbContext)
+        - Основное окно и команды (MainWindow, RelayCommand)
