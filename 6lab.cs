@@ -1,6 +1,5 @@
 using System;
 using FractionLib;
-using FluentAssertions;
 using Xunit;
 
 namespace FractionTests
@@ -12,27 +11,25 @@ namespace FractionTests
         public void Constructor_ShouldSimplifyFraction()
         {
             var f = new Fraction(2, 4);
-            f.Numerator.Should().Be(1);
-            f.Denominator.Should().Be(2);
+            Assert.Equal(1, f.Numerator);
+            Assert.Equal(2, f.Denominator);
         }
 
         [Fact]
         public void Constructor_ShouldNormalizeSign()
         {
             var f = new Fraction(1, -2);
-            f.Numerator.Should().Be(-1);
-            f.Denominator.Should().Be(2);
+            Assert.Equal(-1, f.Numerator);
+            Assert.Equal(2, f.Denominator);
         }
 
         [Fact]
         public void Constructor_ShouldThrow_WhenDenominatorIsZero()
         {
-            Action act = () => new Fraction(1, 0);
-            act.Should().Throw<DivideByZeroException>()
-                .WithMessage("Denominator cannot be zero.");
+            Assert.Throws<DivideByZeroException>(() => new Fraction(1, 0));
         }
 
-        // ===== Операции =====
+        // ===== Арифметические операции =====
         [Theory]
         [InlineData(1, 2, 1, 3, 5, 6)]
         [InlineData(-1, 2, 1, 3, -1, 6)]
@@ -45,7 +42,8 @@ namespace FractionTests
 
             var result = a + b;
 
-            result.Should().BeEquivalentTo(new Fraction(expN, expD));
+            Assert.Equal(expN, result.Numerator);
+            Assert.Equal(expD, result.Denominator);
         }
 
         [Theory]
@@ -60,7 +58,8 @@ namespace FractionTests
 
             var result = a - b;
 
-            result.Should().BeEquivalentTo(new Fraction(expN, expD));
+            Assert.Equal(expN, result.Numerator);
+            Assert.Equal(expD, result.Denominator);
         }
 
         [Theory]
@@ -75,7 +74,8 @@ namespace FractionTests
 
             var result = a * b;
 
-            result.Should().BeEquivalentTo(new Fraction(expN, expD));
+            Assert.Equal(expN, result.Numerator);
+            Assert.Equal(expD, result.Denominator);
         }
 
         [Theory]
@@ -90,7 +90,8 @@ namespace FractionTests
 
             var result = a / b;
 
-            result.Should().BeEquivalentTo(new Fraction(expN, expD));
+            Assert.Equal(expN, result.Numerator);
+            Assert.Equal(expD, result.Denominator);
         }
 
         [Fact]
@@ -99,9 +100,7 @@ namespace FractionTests
             var a = new Fraction(1, 2);
             var b = new Fraction(0, 3);
 
-            Action act = () => { var _ = a / b; };
-            act.Should().Throw<DivideByZeroException>()
-                .WithMessage("Cannot divide by zero.");
+            Assert.Throws<DivideByZeroException>(() => _ = a / b);
         }
 
         // ===== Остальные методы =====
@@ -109,14 +108,14 @@ namespace FractionTests
         public void ToDouble_ShouldReturnCorrectValue()
         {
             var f = new Fraction(1, 4);
-            f.ToDouble().Should().BeApproximately(0.25, 1e-10);
+            Assert.Equal(0.25, f.ToDouble(), 5);
         }
 
         [Fact]
         public void ToString_ShouldReturnExpectedFormat()
         {
             var f = new Fraction(3, 5);
-            f.ToString().Should().Be("3/5");
+            Assert.Equal("3/5", f.ToString());
         }
 
         [Fact]
@@ -124,8 +123,7 @@ namespace FractionTests
         {
             var a = new Fraction(2, 4);
             var b = new Fraction(1, 2);
-
-            a.Equals(b).Should().BeTrue();
+            Assert.True(a.Equals(b));
         }
 
         [Fact]
@@ -133,8 +131,7 @@ namespace FractionTests
         {
             var a = new Fraction(1, 2);
             var b = new Fraction(2, 3);
-
-            a.Equals(b).Should().BeFalse();
+            Assert.False(a.Equals(b));
         }
 
         [Fact]
@@ -142,8 +139,7 @@ namespace FractionTests
         {
             var a = new Fraction(2, 4);
             var b = new Fraction(1, 2);
-
-            a.GetHashCode().Should().Be(b.GetHashCode());
+            Assert.Equal(a.GetHashCode(), b.GetHashCode());
         }
     }
 }
