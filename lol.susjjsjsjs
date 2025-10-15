@@ -1,71 +1,288 @@
-[Fact]
-public void RejectsWithdrawalViaWeb()
-{
-    var tx = new Transaction
-    {
-        Amount = 50_000,
-        Kind = TransactionKind.Withdrawal,
-        Channel = "Web",
-        IsInternal = false,
-        IsVipClient = false
-    };
-    Assert.StartsWith("Отклонено", TransactionAnalyzer.AnalyzeTransaction(tx));
-}
+using TransactionLib;
+using Xunit;
+using System;
 
-[Fact]
-public void RejectsLargeWithdrawalForNonVip()
+public class TransactionAnalyzerTests
 {
-    var tx = new Transaction
+    [Fact]
+    public void RejectsUnknownTransactionType()
     {
-        Amount = 300_000,
-        Kind = TransactionKind.Withdrawal,
-        IsInternal = false,
-        IsVipClient = false,
-        Channel = "Office"
-    };
-    Assert.StartsWith("Ограничение", TransactionAnalyzer.AnalyzeTransaction(tx));
-}
+        var tx = new Transaction
+        {
+            Amount = 100,
+            Kind = TransactionKind.Unknown,
+            Timestamp = DateTime.Now
+        };
 
-[Fact]
-public void RejectsWeekendOnlineTransferBetweenDifferentAccounts()
-{
-    var saturday = new DateTime(2025, 10, 11); // суббота
-    var tx = new Transaction
-    {
-        Amount = 10_000,
-        Kind = TransactionKind.Transfer,
-        FromAccountType = "Текущий",
-        ToAccountType = "Сберегательный",
-        IsInternal = false,
-        Channel = "Web",
-        Timestamp = saturday,
-        IsVipClient = false
-    };
-    Assert.StartsWith("Ошибка", TransactionAnalyzer.AnalyzeTransaction(tx));
-}
+        Assert.StartsWith("Ошибка", TransactionAnalyzer.AnalyzeTransaction(tx));
+    }
 
-[Fact]
-public void AllowsInternalTransferRegardlessOfAccountTypes()
-{
-    var tx = new Transaction
+    [Fact]
+    public void RejectsTooManyTransactionsForNonVip()
     {
-        Amount = 10_000,
-        Kind = TransactionKind.Transfer,
-        FromAccountType = "Текущий",
-        ToAccountType = "Сберегательный",
-        IsInternal = true,
-        IsVipClient = false
-    };
-    Assert.Equal("Транзакция допустима.", TransactionAnalyzer.AnalyzeTransaction(tx));
-}
+        var tx = new Transaction
+        {
+            Amount = 100,
+            Kind = TransactionKind.Deposit,
+            DailyTransactionCount = 15,
+            IsVipClient = false
+        };
 
-[Fact]
-public void HandlesUnknownTypeWithPositiveAmount()
-{
-    var tx = new Transaction
+        Assert.Contains("превышено количество", TransactionAnalyzer.AnalyzeTransaction(tx));
+    }
+
+    [Fact]
+    public void AllowsManyTransactionsForVip()
     {
-        Amount = 10,
-        Kind = TransactionKind.Unknown
-    };
-    Assert.StartsWith("Ошибка", TransactionAnalyzer.AnalyzeTransaction(tx));
+        var tx = new Transaction
+        {
+            Amount = 100,
+            Kind = TransactionKind.Deposit,
+            DailyTransactionCount = 20,
+            IsVipClient = true
+        };
+
+        Assert.Equal("Транзакция допустима.", TransactionAnalyzer.AnalyzeTransaction(tx));
+    }
+
+    [Fact]
+    public void AllowsTransactionExactlyAtDailyLimit()
+    {
+        var tx = new Transaction
+        {
+            Amount = 100_000,
+            DailyTransactionTotal = 400_000,
+            Kind = TransactionKind.Transfer,
+            IsVipClient = false
+        };
+
+        Assert.Equal("Транзакция допустима.", TransactionAnalyzer.AnalyzeTransaction(tx));
+    }
+
+    [Fact]
+    public void RejectsDailySumExceededForNonVip()
+    {
+        var tx = new Transaction
+        {
+            Amount = 300_000,
+            Kind = TransactionKind.Transfer,
+            DailyTransactionTotal = 250_000,
+            IsVipClient = false
+        };
+
+        Assert.StartsWith("Ограничение: превышена", TransactionAnalyzer.AnalyzeTransaction(tx));
+    }
+
+    [Fact]
+    public void RejectsLargeAtmTransfer()
+    {
+        var tx = new Transaction
+        {
+            Amount = 150_000,
+            Kind = TransactionKind.Transfer,
+            Channel = "ATM",
+            IsInternal = true
+        };
+
+        Assert.StartsWith("Ограничение: банкоматы", TransactionAnalyzer.AnalyzeTransaction(tx));
+    }
+
+    [Fact]
+    public void AllowsAtmTransferExactlyAtLimit()
+    {
+        var tx = new Transaction
+        {
+            Amount = 100_000,
+            Kind = TransactionKind.Transfer,
+            Channel = "ATM",
+            IsInternal = true
+        };
+
+        Assert.Equal("Транзакция допустима.", TransactionAnalyzer.AnalyzeTransaction(tx));
+    }
+
+    [Fact]
+    public void AllowsVipToTransferLargeExternal()
+    {
+        var tx = new Transaction
+        {
+            Amount = 2_000_000,
+            Kind = TransactionKind.Transfer,
+            IsInternal = false,
+            IsVipClient = true
+        };
+
+        Assert.Equal("Транзакция допустима.", TransactionAnalyzer.AnalyzeTransaction(tx));
+    }
+
+    [Fact]
+    public void RejectsLargeExternalTransferForNonVip()
+    {
+        var tx = new Transaction
+        {
+            Amount = 2_000_000,
+            Kind = TransactionKind.Transfer,
+            IsInternal = false,
+            IsVipClient = false
+        };
+
+        Assert.StartsWith("Отклонено", TransactionAnalyzer.AnalyzeTransaction(tx));
+    }
+
+    [Fact]
+    public void AppliesCommissionForNonVipCurrentToSaving()
+    {
+        var tx = new Transaction
+        {
+            Amount = 1000,
+            Kind = TransactionKind.Transfer,
+            FromAccountType = "Текущий",
+            ToAccountType = "Сберегательный",
+            IsInternal = false,
+            IsVipClient = false
+        };
+
+        Assert.StartsWith("Комиссия", TransactionAnalyzer.AnalyzeTransaction(tx));
+    }
+
+    [Fact]
+    public void AllowsInternalTransferRegardlessOfAccountTypes()
+    {
+        var tx = new Transaction
+        {
+            Amount = 10_000,
+            Kind = TransactionKind.Transfer,
+            FromAccountType = "Текущий",
+            ToAccountType = "Сберегательный",
+            IsInternal = true,
+            IsVipClient = false
+        };
+
+        Assert.Equal("Транзакция допустима.", TransactionAnalyzer.AnalyzeTransaction(tx));
+    }
+
+    [Fact]
+    public void RejectsWeekendOnlineTransferBetweenDifferentAccounts()
+    {
+        var saturday = new DateTime(2025, 10, 11); // суббота
+        var tx = new Transaction
+        {
+            Amount = 10_000,
+            Kind = TransactionKind.Transfer,
+            FromAccountType = "Текущий",
+            ToAccountType = "Сберегательный",
+            IsInternal = false,
+            Channel = "Web",
+            Timestamp = saturday,
+            IsVipClient = false
+        };
+
+        Assert.StartsWith("Ошибка", TransactionAnalyzer.AnalyzeTransaction(tx));
+    }
+
+    [Fact]
+    public void RejectsSundayOnlineTransferBetweenDifferentAccounts()
+    {
+        var sunday = new DateTime(2025, 10, 12);
+        var tx = new Transaction
+        {
+            Amount = 10_000,
+            Kind = TransactionKind.Transfer,
+            FromAccountType = "Текущий",
+            ToAccountType = "Сберегательный",
+            IsInternal = false,
+            Channel = "Mobile",
+            Timestamp = sunday,
+            IsVipClient = false
+        };
+
+        Assert.StartsWith("Ошибка", TransactionAnalyzer.AnalyzeTransaction(tx));
+    }
+
+    [Fact]
+    public void RejectsWithdrawalViaWeb()
+    {
+        var tx = new Transaction
+        {
+            Amount = 50_000,
+            Kind = TransactionKind.Withdrawal,
+            Channel = "Web",
+            IsInternal = false,
+            IsVipClient = false
+        };
+
+        Assert.StartsWith("Отклонено", TransactionAnalyzer.AnalyzeTransaction(tx));
+    }
+
+    [Fact]
+    public void RejectsLargeWithdrawalForNonVip()
+    {
+        var tx = new Transaction
+        {
+            Amount = 300_000,
+            Kind = TransactionKind.Withdrawal,
+            IsInternal = false,
+            IsVipClient = false,
+            Channel = "Office"
+        };
+
+        Assert.StartsWith("Ограничение", TransactionAnalyzer.AnalyzeTransaction(tx));
+    }
+
+    [Fact]
+    public void AllowsModerateWithdrawalForNonVip()
+    {
+        var tx = new Transaction
+        {
+            Amount = 100_000,
+            Kind = TransactionKind.Withdrawal,
+            IsInternal = false,
+            IsVipClient = false,
+            Channel = "Office"
+        };
+
+        Assert.Equal("Транзакция допустима.", TransactionAnalyzer.AnalyzeTransaction(tx));
+    }
+
+    [Fact]
+    public void AllowsVipLargeExternalWithdrawal()
+    {
+        var tx = new Transaction
+        {
+            Amount = 500_000,
+            Kind = TransactionKind.Withdrawal,
+            IsInternal = false,
+            IsVipClient = true,
+            Channel = "Office"
+        };
+
+        Assert.Equal("Транзакция допустима.", TransactionAnalyzer.AnalyzeTransaction(tx));
+    }
+
+    [Fact]
+    public void RejectsZeroAmount()
+    {
+        var tx = new Transaction
+        {
+            Amount = 0,
+            Kind = TransactionKind.Unknown,
+            IsVipClient = false,
+            Channel = "Web",
+            Timestamp = DateTime.Now
+        };
+
+        Assert.StartsWith("Ошибка", TransactionAnalyzer.AnalyzeTransaction(tx));
+    }
+
+    [Fact]
+    public void HandlesUnknownTypeWithPositiveAmount()
+    {
+        var tx = new Transaction
+        {
+            Amount = 10,
+            Kind = TransactionKind.Unknown
+        };
+
+        Assert.StartsWith("Ошибка", TransactionAnalyzer.AnalyzeTransaction(tx));
+    }
 }
